@@ -1,29 +1,31 @@
-# Embedding
+![image](https://github.com/user-attachments/assets/09a0f497-548b-4b37-b8a5-544c791a5dde)# Embedding
 
 ## Supabase Prep:
 1. build a project
-2. enable ```vector``` type file by click ```Database -> Extensions -> search "vector"``` and enable the extensions
-3. make a table ```documents```, cheklist the ```Enable Row Level Security``` and set with a column :
+2. make a table ```documents```, cheklist the ```Enable Row Level Security``` and set with a column :
 ```
 id : int8; -> primary key
 content : text;
-embedding : vector;
-metadate : jsonb;
+metadata : jsonb;
 type : text;
 chunk_id : uuid
 ```
-5. disable the RLS (Row Level Security) by clicking ```Add RLS policy -> 
+3. disable the RLS (Row Level Security) by clicking ```Add RLS policy -> 
 Disable RLS -> Confirm```
-6. make a table ```tables```, cheklist the ```Enable Row Level Security``` and set with a column :
+4. make a table ```tables```, cheklist the ```Enable Row Level Security``` and set with a column :
 ```
 chunk_id : uuid -> primary key
 table_data : jsonb;
-embedding : vector;
 metadata : jsonb;
 description : text
 ```
-7. disable the RLS (Row Level Security) by clicking ```Add RLS policy -> 
+5. disable the RLS (Row Level Security) by clicking ```Add RLS policy -> 
 Disable RLS -> Confirm```
+
+# Obtain DB_CONNECTION for embedding storage 
+1. go to "Connect" option in the top bar of your project page
+![image](https://github.com/user-attachments/assets/4b5bf5ba-b276-4f3a-9248-9ca7df3bee33)
+2. copy the connection string URI
 
 # Run code in local:
 1. install the ```requirements.txt``` first in your environment
