@@ -3,6 +3,7 @@ import json
 import torch
 import uuid
 import numpy as np
+import vecs
 from dotenv import load_dotenv
 from supabase import create_client, Client
 from transformers import AutoTokenizer, AutoModel
@@ -11,9 +12,15 @@ from transformers import AutoTokenizer, AutoModel
 load_dotenv()
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+DB_CONNECTION = os.getenv("DB_CONNECTION")
 
 # Initialize Supabase
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+# Create vector store client
+vx = vecs.create_client(DB_CONNECTION)
+vec_text = vx.get_or_create_collection(name="vec_text", dimension=768)
+vec_table = vx.get_or_create_collection(name="vec_table", dimension=768)
 
 # Load Embedding Model
 tokenizer = AutoTokenizer.from_pretrained("Alibaba-NLP/gte-multilingual-base", trust_remote_code=True)
@@ -48,26 +55,30 @@ def convert_table_to_text(table_data, metadata):
 
 def store_chunks_in_supabase(chunks):
     """Stores text and table chunks into Supabase."""
-    document_entries, table_entries = [], []
+    document_entries, table_entries, text_records, table_records = [], [], [], []
     for chunk in chunks:
         chunk_id = str(uuid.uuid4())
         if "content" in chunk and chunk["content"]:
             embedding = get_embedding(chunk["content"])
             document_entries.append({
                 "chunk_id": chunk_id, "content": chunk["content"],
-                "embedding": embedding, "metadata": chunk["metadata"], "type": "text"
+                "metadata": chunk["metadata"], "type": "text"
             })
+            text_records.append((chunk_id, embedding, chunk["metadata"]))
         if "table" in chunk and chunk["table"]:
             table_text, table_description = convert_table_to_text(chunk["table"], chunk.get("metadata", {}))
             table_embedding = get_embedding(table_text)
             table_entries.append({
                 "chunk_id": chunk_id, "table_data": json.dumps(chunk["table"], ensure_ascii=False),
-                "description": table_description, "embedding": table_embedding, "metadata": chunk.get("metadata", {})
+                "description": table_description, "metadata": chunk.get("metadata", {})
             })
+            table_records.append((chunk_id, table_embedding, metadata))  ### updated ### (tambahan)
     if document_entries:
         supabase.table("documents").insert(document_entries).execute()
     if table_entries:
         supabase.table("tables").insert(table_entries).execute()
+    vec_text.upsert(records=text_records)
+    vec_table.upsert(records=table_records)
 
 if __name__ == "__main__":
     input_folder = r"C:\\Users\\LENOVO\\Desktop\\DOCKER-TRY\\4_embedding_store\\input_json"
